@@ -1,0 +1,29 @@
+# Python virtual environment
+.venv/
+env/
+venv/
+ENV/
+
+# Python bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables and secrets
+.env
+*.env
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db 
