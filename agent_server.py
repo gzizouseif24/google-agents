@@ -6,11 +6,32 @@ from pydantic import BaseModel
 import asyncio
 from pathlib import Path
 import logging
+import os
+import sys
 from multi_tool_agent.agent import root_agent, Runner, InMemorySessionService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Check required environment variables
+required_env_vars = [
+    'GOOGLE_API_KEY',
+    'OPENWEATHERMAP_API_KEY',
+]
+
+missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+if missing_vars:
+    print("Error: Missing required environment variables:")
+    for var in missing_vars:
+        print(f"- {var}")
+    print("\nPlease set these environment variables before starting the server.")
+    print("You can set them using:")
+    print("  export VARIABLE=value  # On Linux/Mac")
+    print("  set VARIABLE=value     # On Windows")
+    print("Or by providing them in docker-compose:")
+    print("  docker-compose run -e GOOGLE_API_KEY=your_key -e OPENWEATHERMAP_API_KEY=your_key weather-chat")
+    sys.exit(1)
 
 app = FastAPI(title="Multi-Tool Agent Chat Interface")
 
@@ -62,6 +83,13 @@ async def startup_event():
             state=initial_state
         )
         logger.info("Successfully created initial session")
+        
+        # Log environment configuration
+        logger.info("Environment configuration:")
+        logger.info(f"- GOOGLE_GENAI_USE_VERTEXAI: {os.getenv('GOOGLE_GENAI_USE_VERTEXAI', 'Not set')}")
+        logger.info(f"- MODEL_GEMINI_2_0_FLASH: {os.getenv('MODEL_GEMINI_2_0_FLASH', 'Not set')}")
+        logger.info("- API keys configured: ✓")
+        
     except Exception as e:
         logger.error(f"Failed to create initial session: {str(e)}")
 
@@ -69,6 +97,16 @@ async def startup_event():
 async def read_root():
     """Serve the HTML interface"""
     return FileResponse("templates/index.html")
+
+@app.get("/health")
+async def health_check():
+    """Check if the service is healthy and environment is configured"""
+    return {
+        "status": "healthy",
+        "environment_configured": all(os.getenv(var) for var in required_env_vars),
+        "google_ai_configured": bool(os.getenv('GOOGLE_API_KEY')),
+        "weather_api_configured": bool(os.getenv('OPENWEATHERMAP_API_KEY'))
+    }
 
 @app.post("/chat/")
 async def chat(message: ChatMessage):

@@ -4,3 +4,4 @@ $headers = @{ 'Content-Type' = 'application/json' }; $body = @{ state = @{ Tempe
 
 
 $headers = @{ 'Content-Type' = 'application/json' }; $body = @{ app_name = 'multi_tool_agent'; user_id = 'u_00001'; session_id = 's_00001'; new_message = @{ role = 'user'; parts = @(@{ text = 'Hey whats the weather ?' }) } } | ConvertTo-Json -Depth 10; Invoke-RestMethod -Method Post -Uri 'http://localhost:8000/run' -Headers $headers -Body $body
+
