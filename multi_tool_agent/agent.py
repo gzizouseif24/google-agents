@@ -44,6 +44,7 @@ def get_weather_stateful(city: str, tool_context: ToolContext) -> dict:
         # Read preferred temperature unit from state
         preferred_unit = tool_context.state.get("user_preference_temperature_unit", "Celsius") # Default to Celsius
         preferred_city = tool_context.state.get("user_preference_city", "Tunis") # Default city preference
+        preferred_language = tool_context.state.get("user_preference_language", "English") # Default language preference
         
 
         
@@ -61,7 +62,13 @@ def get_weather_stateful(city: str, tool_context: ToolContext) -> dict:
         geo_data = geo_response.json()
         
         if not geo_data:
-            error_msg = f"City '{city}' not found."
+            if preferred_language == "Arabic":
+                error_msg = f"لم يتم العثور على المدينة '{city}'."
+            elif preferred_language == "French":
+                error_msg = f"Ville '{city}' introuvable."
+            else:  # Default to English
+                error_msg = f"City '{city}' not found."
+                
             print(f"--- Tool: {error_msg} ---")
             return {
                 "status": "error",
@@ -95,24 +102,43 @@ def get_weather_stateful(city: str, tool_context: ToolContext) -> dict:
                 temp_value = temp_celsius
                 temp_unit = "°C"
             
-            report = f"The current weather in {city_name} is {weather_description} with a temperature of {temp_value:.1f}{temp_unit}."
+            # Generate the report in the preferred language
+            if preferred_language == "Arabic":
+                report = f"الطقس الحالي في {city_name} هو {weather_description} مع درجة حرارة {temp_value:.1f}{temp_unit}."
+            elif preferred_language == "French":
+                report = f"La météo actuelle à {city_name} est {weather_description} avec une température de {temp_value:.1f}{temp_unit}."
+            else:  # Default to English
+                report = f"The current weather in {city_name} is {weather_description} with a temperature of {temp_value:.1f}{temp_unit}."
+            
             result = {"status": "success", "report": report}
             
             # Write back to state that we checked this city
             tool_context.state["last_city_checked"] = city_name
             print(f"--- Tool: Updated state 'last_city_checked': {city_name} ---")
-            print(f"--- Tool: Generated report in {preferred_unit}. Result: {result} ---")
+            print(f"--- Tool: Generated report in {preferred_language} and {preferred_unit}. Result: {result} ---")
             
             return result
         else:
-            error_msg = f"Weather information for '{city}' is not available. API error: {data.get('message', 'Unknown error')}"
+            if preferred_language == "Arabic":
+                error_msg = f"معلومات الطقس لـ '{city}' غير متوفرة. خطأ في API: {data.get('message', 'خطأ غير معروف')}"
+            elif preferred_language == "French":
+                error_msg = f"Les informations météo pour '{city}' ne sont pas disponibles. Erreur API: {data.get('message', 'Erreur inconnue')}"
+            else:  # Default to English
+                error_msg = f"Weather information for '{city}' is not available. API error: {data.get('message', 'Unknown error')}"
+                
             print(f"--- Tool: API error: {error_msg} ---")
             return {
                 "status": "error",
                 "error_message": error_msg,
             }
     except Exception as e:
-        error_msg = f"Error retrieving weather for '{city}': {str(e)}"
+        if preferred_language == "Arabic":
+            error_msg = f"خطأ في استرجاع الطقس لـ '{city}': {str(e)}"
+        elif preferred_language == "French":
+            error_msg = f"Erreur lors de la récupération de la météo pour '{city}': {str(e)}"
+        else:  # Default to English
+            error_msg = f"Error retrieving weather for '{city}': {str(e)}"
+            
         print(f"--- Tool: Exception: {error_msg} ---")
         return {
             "status": "error",
@@ -139,6 +165,7 @@ def get_weather_forecast(city: str, tool_context: ToolContext, days: int = 3) ->
         # Read preferred temperature unit from state
         preferred_unit = tool_context.state.get("user_preference_temperature_unit", "Celsius") # Default to Celsius
         preferred_city = tool_context.state.get("user_preference_city", "Tunis") # Default city preference
+        preferred_language = tool_context.state.get("user_preference_language", "English") # Default language preference
         
         # Check if we should use the preferred city
         original_city = city
@@ -157,7 +184,13 @@ def get_weather_forecast(city: str, tool_context: ToolContext, days: int = 3) ->
         geo_data = geo_response.json()
         
         if not geo_data:
-            error_msg = f"City '{city}' not found."
+            if preferred_language == "Arabic":
+                error_msg = f"لم يتم العثور على المدينة '{city}'."
+            elif preferred_language == "French":
+                error_msg = f"Ville '{city}' introuvable."
+            else:  # Default to English
+                error_msg = f"City '{city}' not found."
+                
             print(f"--- Tool: {error_msg} ---")
             return {
                 "status": "error",
@@ -231,21 +264,54 @@ def get_weather_forecast(city: str, tool_context: ToolContext, days: int = 3) ->
                     midday_forecast = day_forecasts[0]
                 
                 if midday_forecast:
-                    # Format date
-                    date_str = date.strftime("%A, %B %d")  # e.g., "Monday, July 10"
+                    # Format date based on preferred language
+                    if preferred_language == "Arabic":
+                        # Note: Arabic date formatting would need more extensive localization
+                        # For now, using a simplified approach
+                        date_str = date.strftime("%Y-%m-%d")  # e.g., "2023-07-10"
+                    elif preferred_language == "French":
+                        # French date format (for example, "lundi 10 juillet")
+                        locale = 'fr_FR'
+                        try:
+                            import locale as locale_module
+                            locale_module.setlocale(locale_module.LC_TIME, locale)
+                            date_str = date.strftime("%A %d %B")
+                            locale_module.setlocale(locale_module.LC_TIME, '')  # Reset locale
+                        except:
+                            # If locale setting fails, fallback
+                            date_str = date.strftime("%d/%m/%Y")
+                    else:  # Default to English
+                        date_str = date.strftime("%A, %B %d")  # e.g., "Monday, July 10"
+                    
+                    # Format temperature
+                    if preferred_unit == "Fahrenheit":
+                        temp_celsius = midday_forecast['temp']
+                        temp_value = (temp_celsius * 9/5) + 32
+                        temp_formatted = f"{temp_value:.1f}°F"
+                    else:  # Default to Celsius
+                        temp_formatted = f"{midday_forecast['temp']:.1f}°C"
                     
                     # Add to results
                     daily_forecasts.append({
                         "date": date_str,
-                        "temperature": f"{midday_forecast['temp']:.1f}°C",
+                        "temperature": temp_formatted,
                         "weather": midday_forecast["weather"]
                     })
             
-            # Prepare the final report
+            # Prepare the final report in the preferred language
             if daily_forecasts:
-                forecast_report = f"Weather forecast for {city_name} for the next {len(daily_forecasts)} days:\n\n"
-                for fc in daily_forecasts:
-                    forecast_report += f"• {fc['date']}: {fc['weather']} with temperature around {fc['temperature']}\n"
+                if preferred_language == "Arabic":
+                    forecast_report = f"توقعات الطقس لـ {city_name} للأيام الـ {len(daily_forecasts)} القادمة:\n\n"
+                    for fc in daily_forecasts:
+                        forecast_report += f"• {fc['date']}: {fc['weather']} مع درجة حرارة حوالي {fc['temperature']}\n"
+                elif preferred_language == "French":
+                    forecast_report = f"Prévisions météo pour {city_name} pour les {len(daily_forecasts)} prochains jours:\n\n"
+                    for fc in daily_forecasts:
+                        forecast_report += f"• {fc['date']}: {fc['weather']} avec une température d'environ {fc['temperature']}\n"
+                else:  # Default to English
+                    forecast_report = f"Weather forecast for {city_name} for the next {len(daily_forecasts)} days:\n\n"
+                    for fc in daily_forecasts:
+                        forecast_report += f"• {fc['date']}: {fc['weather']} with temperature around {fc['temperature']}\n"
                 
                 return {
                     "status": "success",
@@ -253,19 +319,38 @@ def get_weather_forecast(city: str, tool_context: ToolContext, days: int = 3) ->
                     "daily_forecasts": daily_forecasts
                 }
             else:
+                if preferred_language == "Arabic":
+                    error_msg = f"لا تتوفر بيانات توقعات للأيام القادمة في {city_name}."
+                elif preferred_language == "French":
+                    error_msg = f"Aucune donnée de prévision disponible pour les prochains jours à {city_name}."
+                else:  # Default to English
+                    error_msg = f"No forecast data available for upcoming days in {city_name}."
+                
                 return {
                     "status": "error",
-                    "error_message": f"No forecast data available for upcoming days in {city_name}."
+                    "error_message": error_msg
                 }
         else:
-            error_msg = f"Weather forecast for '{city}' is not available. API error: {data.get('message', 'Unknown error')}"
+            if preferred_language == "Arabic":
+                error_msg = f"توقعات الطقس لـ '{city}' غير متوفرة. خطأ في API: {data.get('message', 'خطأ غير معروف')}"
+            elif preferred_language == "French":
+                error_msg = f"Les prévisions météo pour '{city}' ne sont pas disponibles. Erreur API: {data.get('message', 'Erreur inconnue')}"
+            else:  # Default to English
+                error_msg = f"Weather forecast for '{city}' is not available. API error: {data.get('message', 'Unknown error')}"
+                
             print(f"--- Tool: API error: {error_msg} ---")
             return {
                 "status": "error",
                 "error_message": error_msg,
             }
     except Exception as e:
-        error_msg = f"Error retrieving forecast for '{city}': {str(e)}"
+        if preferred_language == "Arabic":
+            error_msg = f"خطأ في استرجاع التوقعات لـ '{city}': {str(e)}"
+        elif preferred_language == "French":
+            error_msg = f"Erreur lors de la récupération des prévisions pour '{city}': {str(e)}"
+        else:  # Default to English
+            error_msg = f"Error retrieving forecast for '{city}': {str(e)}"
+            
         print(f"--- Tool: Exception: {error_msg} ---")
         return {
             "status": "error",
@@ -284,6 +369,7 @@ def get_current_time(city: str, tool_context: ToolContext) -> dict:
         dict: status and result or error msg.
     """
     preferred_city = tool_context.state.get("user_preference_city", "Tunis") # Default city preference
+    preferred_language = tool_context.state.get("user_preference_language", "English") # Default language preference
     
     # Check if we should use the preferred city
     original_city = city
@@ -390,40 +476,97 @@ def get_current_time(city: str, tool_context: ToolContext) -> dict:
             tz_identifier = city_to_timezone[matches[0]]
             city = matches[0]  # Use the matched city name as is
         else:
+            if preferred_language == "Arabic":
+                error_msg = f"عذراً، ليس لدي معلومات عن المنطقة الزمنية لـ {city}. حاول استخدام مدينة رئيسية."
+            elif preferred_language == "French":
+                error_msg = f"Désolé, je n'ai pas d'informations sur le fuseau horaire pour {city}. Essayez une ville principale."
+            else:  # Default to English
+                error_msg = f"Sorry, I don't have timezone information for {city}. Try a major city."
+                
             return {
                 "status": "error",
-                "error_message": (
-                    f"Sorry, I don't have timezone information for {city}. Try a major city."
-                ),
+                "error_message": error_msg,
             }
 
     try:
         tz = ZoneInfo(tz_identifier)
         now = datetime.datetime.now(tz)
-        report = (
-            f'The current time in {city.title()} is {now.strftime("%Y-%m-%d %H:%M:%S %Z%z")}'
-        )
+        
+        # Format time based on preferred language
+        if preferred_language == "Arabic":
+            # Simplified Arabic time format
+            formatted_time = now.strftime("%Y-%m-%d %H:%M:%S %Z%z")
+            report = f'الوقت الحالي في {city.title()} هو {formatted_time}'
+        elif preferred_language == "French":
+            # French date format
+            try:
+                import locale as locale_module
+                locale_module.setlocale(locale_module.LC_TIME, 'fr_FR')
+                formatted_time = now.strftime("%d %B %Y %H:%M:%S %Z%z")
+                locale_module.setlocale(locale_module.LC_TIME, '')  # Reset locale
+            except:
+                formatted_time = now.strftime("%d/%m/%Y %H:%M:%S %Z%z")
+            report = f'L\'heure actuelle à {city.title()} est {formatted_time}'
+        else:  # Default to English
+            formatted_time = now.strftime("%Y-%m-%d %H:%M:%S %Z%z")
+            report = f'The current time in {city.title()} is {formatted_time}'
+            
         return {"status": "success", "report": report}
     except Exception as e:
+        if preferred_language == "Arabic":
+            error_msg = f"خطأ في استرجاع الوقت لـ '{city}': {str(e)}"
+        elif preferred_language == "French":
+            error_msg = f"Erreur lors de la récupération de l'heure pour '{city}': {str(e)}"
+        else:  # Default to English
+            error_msg = f"Error retrieving time for '{city}': {str(e)}"
+            
         return {
             "status": "error",
-            "error_message": f"Error retrieving time for '{city}': {str(e)}",
+            "error_message": error_msg,
         }
 
-def say_hello(name: str = "There") -> str:
+def say_hello(name: str = "There", tool_context: ToolContext = None) -> str:
     """Provides a simple greeting, optionally addressing the user by name.
 
     Args:
         name (str, optional): The name of the person to greet. Defaults to "there".
+        tool_context (ToolContext, optional): Context object providing access to session state.
 
     Returns:
         str: A friendly greeting message.
     """
-    return f"Hello, {name}!"
+    # If tool_context is provided, check for language preference
+    preferred_language = "English"  # Default
+    if tool_context:
+        preferred_language = tool_context.state.get("user_preference_language", "English")
+    
+    if preferred_language == "Arabic":
+        return f"مرحباً، {name}!"
+    elif preferred_language == "French":
+        return f"Bonjour, {name}!"
+    else:  # Default to English
+        return f"Hello, {name}!"
 
-def say_goodbye() -> str:
-    """Provides a simple farewell message to conclude the conversation."""
-    return "Goodbye! Have a great day."
+def say_goodbye(tool_context: ToolContext = None) -> str:
+    """Provides a simple farewell message to conclude the conversation.
+    
+    Args:
+        tool_context (ToolContext, optional): Context object providing access to session state.
+        
+    Returns:
+        str: A friendly farewell message.
+    """
+    # If tool_context is provided, check for language preference
+    preferred_language = "English"  # Default
+    if tool_context:
+        preferred_language = tool_context.state.get("user_preference_language", "English")
+    
+    if preferred_language == "Arabic":
+        return "مع السلامة! أتمنى لك يوماً رائعاً."
+    elif preferred_language == "French":
+        return "Au revoir ! Passez une excellente journée."
+    else:  # Default to English
+        return "Goodbye! Have a great day."
 
 
 """ AGENTS """
@@ -436,9 +579,13 @@ greeting_agent = Agent(
         "You are the Greeting Agent. Your ONLY task is to provide a friendly greeting to the user. "
         "Use the 'say_hello' tool to generate the greeting. "
         "If the user provides their name, make sure to pass it to the tool. "
+        "ALWAYS pass the tool_context to the say_hello function to ensure the greeting is in the right language. "
         "Do not engage in any other conversation or tasks."
-        "\n\nIMPORTANT: If the user speaks in Arabic, respond in Arabic. Detect the language of the user's input "
-        "and adapt your response language accordingly."
+        "IMPORTANT: Always check the user's preferred language in the session state (user_preference_language). "
+        "You must respond in the user's preferred language regardless of what language they typed in. "
+        "If the preferred language is 'Arabic', respond in Arabic. "
+        "If the preferred language is 'French', respond in French. "
+        "If the preferred language is 'English' or not specified, respond in English."
     ),
     tools=[say_hello],
 )
@@ -450,19 +597,27 @@ time_agent = Agent(
     instruction="""You are the Time Agent. Your primary responsibility is to provide accurate current time information.
                 Use the 'get_current_time' tool to fetch the current time for specific cities.
                 The tool will format the time based on user preference stored in state.
+                The tool will format the default city based on user preference stored in state.
+
                 
                 When a user asks about the current time or what time it is in a city, extract the city name and use the tool.
                 
                 IMPORTANT: If the user doesn't specify a city, or asks for the "default" city time,
                 pass an empty string or "default" as the city parameter, and the system will use their
                 preferred city from state (initially set to Tunis).
+
+                IMPORTANT: Always check the user's preferred language in the session state (user_preference_language). 
+                You must respond in the user's preferred language regardless of what language they typed in. 
+                If the preferred language is 'Arabic', respond in Arabic. 
+                If the preferred language is 'French', respond in French. 
+                If the preferred language is 'English' or not specified, respond in English.
+
+
+
+    
                 
                 Respond in a helpful, conversational manner focusing on the time information.
                 If the time couldn't be retrieved for a specific city, explain the issue clearly and suggest using a major city nearby.
-                
-                LANGUAGE ADAPTATION: If the user communicates in Arabic, respond in Arabic. Detect the language of the user's 
-                input and match your response language accordingly. The time information will still be retrieved in English format,
-                but your explanations and conversational elements should be in Arabic when the user speaks Arabic.
                 
                 Example queries you can handle:
                 - "What time is it in Tokyo?"
@@ -481,6 +636,7 @@ forecast_agent = Agent(
                 Use the 'get_weather_forecast' tool to fetch forecast data for specific cities.
                 The tool will format the temperature based on user preference stored in state.
                 The tool will format the default city based on user preference stored in state.
+
                 
                 When a user asks about weather predictions or forecasts for a city, extract the city name and use the tool.
                 By default, provide a 3-day forecast, but if the user specifically asks for a different number of days (1-5),
@@ -489,13 +645,15 @@ forecast_agent = Agent(
                 IMPORTANT: If the user doesn't specify a city, or asks for the "default" city forecast,
                 pass an empty string or "default" as the city parameter, and the system will use their
                 preferred city from state (initially set to Tunis).
+
+                IMPORTANT: Always check the user's preferred language in the session state (user_preference_language). 
+                You must respond in the user's preferred language regardless of what language they typed in. 
+                If the preferred language is 'Arabic', respond in Arabic. 
+                If the preferred language is 'French', respond in French. 
+                If the preferred language is 'English' or not specified, respond in English.
                 
                 Respond in a helpful, conversational manner focusing on the forecast information.
                 If the forecast couldn't be retrieved, explain the issue clearly and suggest alternatives.
-                
-                LANGUAGE ADAPTATION: If the user communicates in Arabic, respond in Arabic. Detect the language of the user's 
-                input and match your response language accordingly. The weather data will still be retrieved in English format,
-                but your explanations and conversational elements should be in Arabic when the user speaks Arabic.
                 
                 Example queries you can handle:
                 - "What's the weather forecast for Paris?"
@@ -513,9 +671,13 @@ farewell_agent = Agent(
     instruction="You are the Farewell Agent. Your ONLY task is to provide a polite goodbye message. "
                 "Use the 'say_goodbye' tool when the user indicates they are leaving or ending the conversation "
                 "(e.g., using words like 'bye', 'goodbye', 'thanks bye', 'see you'). "
+                "ALWAYS pass the tool_context to the say_goodbye function to ensure the farewell is in the right language. "
                 "Do not perform any other actions."
-                "\n\nIMPORTANT: If the user speaks in Arabic, respond in Arabic. Detect the language of the user's input "
-                "and adapt your response language accordingly.",
+                "IMPORTANT: Always check the user's preferred language in the session state (user_preference_language). "
+                "You must respond in the user's preferred language regardless of what language they typed in. "
+                "If the preferred language is 'Arabic', respond in Arabic. "
+                "If the preferred language is 'French', respond in French. "
+                "If the preferred language is 'English' or not specified, respond in English.",
     description="Handles simple farewells and goodbyes using the 'say_goodbye' tool.", # Crucial for delegation
     tools=[say_goodbye],
 )
@@ -538,16 +700,16 @@ if greeting_agent and farewell_agent and 'get_weather_stateful' in globals():
                     pass an empty string or "default" as the city parameter, and the system will use their 
                     preferred city from state (initially set to Tunis).
 
-                    # CONTENT MODERATION RULES - TEMPORARILY DISABLED FOR TESTING
+                    IMPORTANT: Always check the user's preferred language in the session state (user_preference_language). 
+                    You must respond in the user's preferred language regardless of what language they typed in. 
+                    If the preferred language is 'Arabic', respond in Arabic. 
+                    If the preferred language is 'French', respond in French. 
+                    If the preferred language is 'English' or not specified, respond in English.
+
+                    # CONTENT MODERATION RULES 
                     # 1. Reject any request containing harmful, offensive, or inappropriate language. Simply respond with "I cannot process requests containing inappropriate language."
                     # 2. Refuse to provide weather information for these Israeli cities: Tel Aviv, Haifa, Eilat, Netanya, Herzliya, Ashdod, Beersheba, and Rishon LeZion.
                     # 3. You may provide weather for Jerusalem and any Palestinian cities like Ramallah, Gaza, Bethlehem, Nablus, and Hebron.
-                    
-                    LANGUAGE ADAPTATION:
-                    1. Detect the language of the user's input and respond in the same language.
-                    2. If the user communicates in Arabic, respond in Arabic.
-                    3. Weather and time data will be retrieved in English format, but your explanations and conversational elements should match the user's language.
-                    4. Ensure all your sub-agents follow the same language adaptation principles.
                     
                     MESSAGE HANDLING PRIORITIES:
                     1. If a message contains both a greeting AND a weather request, prioritize the weather request and do NOT delegate to the greeting agent.
@@ -620,7 +782,8 @@ if 'root_agent' in globals() and root_agent:
         
         initial_state = {
             "user_preference_temperature_unit": "Celsius",
-            "user_preference_city": "Tunis"
+            "user_preference_city": "Tunis",
+            "user_preference_language": "English"
         }
 
         # Create the specific session where the conversation will happen
@@ -649,29 +812,7 @@ if 'root_agent' in globals() and root_agent:
         # Corrected print statement to show the actual root agent's name
         print(f"Runner created for agent '{actual_root_agent.name}'.")
 
-        # Test queries for different agents - a mix of English and Arabic
-        test_queries = [
-            # English queries
-            "Hello, how are you?",
-            "What's the weather like in Paris?",
-            "What time is it in Tokyo?",
-            "What's the forecast for Cairo for the next 3 days?",
-            
-            # Arabic queries
-            "مرحبا",  # Hello
-            "ما هو الطقس في القاهرة؟",  # What's the weather in Cairo?
-            "كم الساعة الآن في دبي؟",  # What time is it in Dubai?
-            "ما هي توقعات الطقس في تونس للأيام القادمة؟",  # What's the weather forecast in Tunis for the coming days?
-            "مع السلامة"  # Goodbye
-        ]
-        
-        # Run test queries
-        print("\n\n==== Starting Arabic Language Support Tests ====\n")
-        for query in test_queries:
-            # Call the agent with each query
-            print(f"\n==== Testing query: {query} ====")
-            await call_agent_async(query, runner_root_stateful, USER_ID_STATEFUL, SESSION_ID_STATEFUL)
-            print("==== End of response ====")
+
 
 
 # Add a proper execution block to run the async function

@@ -4,155 +4,664 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather Agent Chat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --secondary-text: #666666;
+            --border-color: #e1e4e8;
+            --bot-message-bg: #e9ecef;
+            --user-message-bg: #007bff;
+            --user-message-color: white;
+            --success-bg: #d4edda;
+            --success-color: #155724;
+            --error-bg: #f8d7da;
+            --error-color: #721c24;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-mode {
+            --primary-color: #3d9aff;
+            --primary-hover: #65b0ff;
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-color: #e0e0e0;
+            --secondary-text: #b0b0b0;
+            --border-color: #444444;
+            --bot-message-bg: #3a3a3a;
+            --user-message-bg: #3d9aff;
+            --user-message-color: white;
+            --success-bg: #255833;
+            --success-color: #a8e9bc;
+            --error-bg: #5e2129;
+            --error-color: #f5c2c7;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f0f2f5;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow-x: hidden;
         }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?q=80&w=2000');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.15;
+            z-index: -1;
+            transition: opacity 0.3s ease;
+        }
+
+        .dark-mode body::before {
+            opacity: 0.08;
+        }
+        
+        /* Sun in light mode */
+        body::after {
+            content: '';
+            position: fixed;
+            top: -150px;
+            right: -150px;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255,236,173,0.7) 0%, rgba(255,236,173,0.2) 40%, rgba(255,236,173,0) 70%);
+            border-radius: 50%;
+            z-index: -1;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+        
+        .dark-mode body::after {
+            opacity: 0;
+        }
+        
+        /* Stars in dark mode */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            background-image: 
+                radial-gradient(1px 1px at 25px 5px, white, rgba(255,255,255,0)),
+                radial-gradient(1px 1px at 50px 25px, white, rgba(255,255,255,0)),
+                radial-gradient(1px 1px at 125px 20px, white, rgba(255,255,255,0)),
+                radial-gradient(1.5px 1.5px at 50px 75px, white, rgba(255,255,255,0)),
+                radial-gradient(2px 2px at 175px 125px, white, rgba(255,255,255,0)),
+                radial-gradient(2px 2px at 20px 175px, white, rgba(255,255,255,0)),
+                radial-gradient(2px 2px at 100px 100px, white, rgba(255,255,255,0)),
+                radial-gradient(2px 2px at 125px 225px, white, rgba(255,255,255,0)),
+                radial-gradient(2px 2px at 200px 50px, white, rgba(255,255,255,0)),
+                radial-gradient(2px 2px at 250px 175px, white, rgba(255,255,255,0)),
+                radial-gradient(1px 1px at 225px 75px, white, rgba(255,255,255,0)),
+                radial-gradient(1px 1px at 175px 250px, white, rgba(255,255,255,0)),
+                radial-gradient(1px 1px at 250px 275px, white, rgba(255,255,255,0)),
+                radial-gradient(1px 1px at 40px 275px, white, rgba(255,255,255,0)),
+                radial-gradient(1px 1px at 260px 120px, white, rgba(255,255,255,0));
+            background-size: 300px 300px;
+            background-repeat: repeat;
+            animation: twinkling 8s infinite ease-in-out;
+        }
+        
+        .dark-mode .stars {
+            opacity: 0.4;
+        }
+        
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            opacity: 0.7;
+            animation: twinkle var(--duration) infinite ease-in-out;
+            animation-delay: var(--delay);
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.6); }
+            50% { opacity: 0.8; transform: scale(1); }
+        }
+        
+        @keyframes twinkling {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.5; }
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-height: 100vh;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
         .header {
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
             margin-bottom: 20px;
-            color: #1a73e8;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
         }
+
         .header h1 {
             margin: 0;
-            padding: 10px;
-            font-size: 24px;
+            font-size: 28px;
+            font-weight: 600;
         }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+
         .session-panel {
-            background-color: white;
-            padding: 15px;
-            border-radius: 8px;
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
         }
+
+        .session-info {
+            font-size: 14px;
+            color: var(--secondary-text);
+            margin-bottom: 15px;
+        }
+
         .session-form {
             display: flex;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
-        .session-info {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
+
+        .preferences-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
         }
+
         .chat-container {
-            background-color: white;
+            background-color: var(--card-bg);
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            height: 60vh;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            flex-grow: 1;
             display: flex;
             flex-direction: column;
+            max-height: 70vh;
+            transition: all 0.3s ease;
         }
+
         .chat-messages {
             flex-grow: 1;
             overflow-y: auto;
             margin-bottom: 20px;
             padding: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-color) var(--card-bg);
         }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background-color: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background-color: var(--card-bg);
+        }
+
         .message {
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            max-width: 70%;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 12px;
+            max-width: 80%;
+            line-height: 1.4;
+            position: relative;
+            animation: message-fade-in 0.3s ease;
         }
+
+        @keyframes message-fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .user-message {
-            background-color: #007bff;
-            color: white;
+            background-color: var(--user-message-bg);
+            color: var(--user-message-color);
             margin-left: auto;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-bottom-right-radius: 0;
         }
+
         .bot-message {
-            background-color: #e9ecef;
-            color: black;
+            background-color: var(--bot-message-bg);
+            color: var(--text-color);
             margin-right: auto;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-bottom-left-radius: 0;
         }
+
         .input-container {
             display: flex;
             gap: 10px;
+            padding: 10px 0;
+            border-top: 1px solid var(--border-color);
+            position: relative;
         }
+
         input[type="text"], select {
             flex-grow: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             font-size: 16px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            transition: all 0.3s ease;
         }
+
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
         button {
-            background-color: #007bff;
+            background-color: var(--primary-color);
             color: white;
-            padding: 10px 20px;
+            padding: 12px 20px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
             white-space: nowrap;
+            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
+
         button:hover {
-            background-color: #0056b3;
+            background-color: var(--primary-hover);
         }
-        .preferences-form {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
+
         .system-message {
             text-align: center;
             padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
+            margin: 15px 0;
+            border-radius: 8px;
             font-size: 14px;
+            animation: system-message-fade-in 0.3s ease;
         }
+
+        @keyframes system-message-fade-in {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .success {
-            background-color: #d4edda;
-            color: #155724;
+            background-color: var(--success-bg);
+            color: var(--success-color);
         }
+
         .error {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: var(--error-bg);
+            color: var(--error-color);
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 20px;
+        }
+
+        .typing-indicator span {
+            display: block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--secondary-text);
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: typing-bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-indicator span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes typing-bounce {
+            0%, 80%, 100% { transform: scale(0.6); }
+            40% { transform: scale(1); }
+        }
+
+        .suggestion-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+            justify-content: center;
+        }
+
+        .suggestion-box {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--primary-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            max-width: 250px;
+            text-align: center;
+        }
+
+        .suggestion-box:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .preferences-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+            
+            .session-form {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Weather Agent</h1>
+    <div class="container">
+        <div class="header">
+            <h1>Weather Agent</h1>
+            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+
+        <div class="session-panel">
+            <div class="session-info">
+                Current Session: <span id="current-session">default</span>
+            </div>
+            <div class="session-form">
+                <input type="text" id="session-name" placeholder="New session name">
+                <button onclick="createNewSession()">
+                    <i class="fas fa-plus"></i> Create New Session
+                </button>
+            </div>
+            <div class="preferences-form">
+                <select id="temp-unit">
+                    <option value="Celsius">Celsius</option>
+                    <option value="Fahrenheit">Fahrenheit</option>
+                </select>
+                <select id="language" onchange="updateLanguage()">
+                    <option value="English">English</option>
+                    <option value="French">Français</option>
+                    <option value="Arabic">العربية</option>
+                </select>
+                <input type="text" id="default-city" placeholder="Default city">
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <div class="message bot-message">Hello! How can I help you today?</div>
+                <div class="suggestion-container" id="suggestion-container">
+                    <!-- Suggestion boxes will be added here dynamically -->
+                </div>
+            </div>
+            <div class="input-container">
+                <input type="text" id="message-input" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div class="session-panel">
-        <div class="session-info">
-            Current Session: <span id="current-session">default</span>
-        </div>
-        <div class="session-form">
-            <input type="text" id="session-name" placeholder="New session name">
-            <button onclick="createNewSession()">Create New Session</button>
-        </div>
-        <div class="preferences-form">
-            <select id="temp-unit">
-                <option value="Celsius">Celsius</option>
-                <option value="Fahrenheit">Fahrenheit</option>
-            </select>
-            <input type="text" id="default-city" placeholder="Default city">
-        </div>
-    </div>
-
-    <div class="chat-container">
-        <div class="chat-messages" id="chat-messages">
-            <div class="message bot-message">Hello! How can I help you today?</div>
-        </div>
-        <div class="input-container">
-            <input type="text" id="message-input" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
-            <button onclick="sendMessage()">Send</button>
-        </div>
-    </div>
-
+    <div class="stars"></div>
     <script>
         const messagesContainer = document.getElementById('chat-messages');
         const messageInput = document.getElementById('message-input');
         let currentSessionId = 's_00001'; // Default session ID
+        
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = themeToggle.querySelector('i');
+        
+        // Check for saved theme preference or prefer-color-scheme
+        const prefersDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const savedTheme = localStorage.getItem('theme');
+        
+        // Apply initial theme
+        if (savedTheme === 'dark' || (!savedTheme && prefersDarkMode)) {
+            document.documentElement.classList.add('dark-mode');
+            themeIcon.classList.replace('fa-moon', 'fa-sun');
+            // Initialize stars for dark mode on page load
+            setTimeout(() => createStars(), 100);
+        }
+        
+        // Theme toggle event listener
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark-mode');
+            const isDarkMode = document.documentElement.classList.contains('dark-mode');
+            
+            // Update icon
+            if (isDarkMode) {
+                themeIcon.classList.replace('fa-moon', 'fa-sun');
+                updateStars(true);
+            } else {
+                themeIcon.classList.replace('fa-sun', 'fa-moon');
+                updateStars(false);
+            }
+            
+            // Save preference
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+        });
+        
+        // Create animated stars for dark mode
+        function createStars() {
+            const starsContainer = document.querySelector('.stars');
+            const numStars = 40;
+            
+            // Clear existing stars
+            while (starsContainer.firstChild) {
+                starsContainer.removeChild(starsContainer.firstChild);
+            }
+            
+            // Create new stars
+            for (let i = 0; i < numStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                // Random position
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                
+                // Random size (1-3px)
+                const size = Math.random() * 2 + 1;
+                
+                // Random animation duration and delay
+                const duration = Math.random() * 3 + 2;
+                const delay = Math.random() * 5;
+                
+                star.style.left = `${x}%`;
+                star.style.top = `${y}%`;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.setProperty('--duration', `${duration}s`);
+                star.style.setProperty('--delay', `${delay}s`);
+                
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        function updateStars(isDarkMode) {
+            if (isDarkMode) {
+                createStars();
+            }
+        }
+        
+        // Check if dark mode is active on page load
+        if (document.documentElement.classList.contains('dark-mode')) {
+            createStars();
+        }
+        
+        // Set initial greeting based on default language
+        window.onload = function() {
+            const sessionName = document.getElementById('current-session').textContent;
+            updateGreeting('English', sessionName);
+            updateSuggestions('English');
+        };
+        
+        // Get greeting text based on language and session name
+        function getGreeting(language, name) {
+            switch(language) {
+                case 'French':
+                    return `Bonjour ${name}! Comment puis-je vous aider aujourd'hui?`;
+                case 'Arabic':
+                    return `مرحباً ${name}! كيف يمكنني مساعدتك اليوم؟`;
+                default: // English
+                    return `Hello ${name}! How can I help you today?`;
+            }
+        }
+        
+        // Get suggestion texts based on language
+        function getSuggestions(language) {
+            switch(language) {
+                case 'French':
+                    return [
+                        "Quel temps fait-il?",
+                        "Quelle heure est-il?",
+                        "Quel temps fera-t-il les 3 prochains jours?"
+                    ];
+                case 'Arabic':
+                    return [
+                        "ما هو الطقس؟",
+                        "ما هو الوقت الحالي؟",
+                        "كيف سيكون الطقس في الأيام الثلاثة القادمة؟"
+                    ];
+                default: // English
+                    return [
+                        "What's the weather?",
+                        "What's the current time?",
+                        "What's the weather like in the upcoming 3 days?"
+                    ];
+            }
+        }
+        
+        // Update suggestion boxes based on language
+        function updateSuggestions(language) {
+            const suggestionsContainer = document.getElementById('suggestion-container');
+            suggestionsContainer.innerHTML = ''; // Clear existing suggestions
+            
+            const suggestions = getSuggestions(language);
+            
+            suggestions.forEach(suggestion => {
+                const suggestionBox = document.createElement('div');
+                suggestionBox.className = 'suggestion-box';
+                suggestionBox.textContent = suggestion;
+                suggestionBox.onclick = () => {
+                    // When clicked, send as user message
+                    messageInput.value = suggestion;
+                    sendMessage();
+                };
+                suggestionsContainer.appendChild(suggestionBox);
+            });
+        }
+        
+        // Update greeting message in chat
+        function updateGreeting(language, name) {
+            const greeting = getGreeting(language, name);
+            // If there are no messages yet, create a new greeting
+            if (messagesContainer.children.length === 0) {
+                messagesContainer.innerHTML = `<div class="message bot-message">${greeting}</div>`;
+                // Add suggestions after greeting
+                const suggestionsContainer = document.createElement('div');
+                suggestionsContainer.id = 'suggestion-container';
+                suggestionsContainer.className = 'suggestion-container';
+                messagesContainer.appendChild(suggestionsContainer);
+                updateSuggestions(language);
+            } else {
+                // Replace only the first message (greeting)
+                messagesContainer.children[0].textContent = greeting;
+                // Update suggestions
+                updateSuggestions(language);
+            }
+        }
+        
+        // Update language preference for current session
+        async function updateLanguage() {
+            const language = document.getElementById('language').value;
+            const sessionName = document.getElementById('current-session').textContent;
+            
+            updateGreeting(language, sessionName);
+            updateSuggestions(language);
+            
+            // If there's an active session, update its preferences
+            if (currentSessionId && currentSessionId !== 's_00001') {
+                try {
+                    // Here you would add an API endpoint to update session preferences
+                    // For now, we just update the greeting
+                    showSystemMessage(`Language changed to ${language}`, 'success');
+                } catch (error) {
+                    showSystemMessage('Error updating language preference', 'error');
+                }
+            }
+        }
 
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
@@ -169,6 +678,7 @@
 
             const tempUnit = document.getElementById('temp-unit').value;
             const defaultCity = document.getElementById('default-city').value.trim() || 'Tunis';
+            const language = document.getElementById('language').value;
 
             try {
                 const response = await fetch('/session/', {
@@ -180,7 +690,8 @@
                         session_name: sessionName,
                         preferences: {
                             temperature_unit: tempUnit,
-                            default_city: defaultCity
+                            default_city: defaultCity,
+                            language: language
                         }
                     })
                 });
@@ -190,8 +701,9 @@
                     currentSessionId = data.session_id;
                     document.getElementById('current-session').textContent = sessionName;
                     showSystemMessage('New session created successfully!', 'success');
-                    // Clear chat messages
-                    messagesContainer.innerHTML = '<div class="message bot-message">Hello! How can I help you today?</div>';
+                    
+                    // Update greeting with session name and language
+                    updateGreeting(language, sessionName);
                 } else {
                     showSystemMessage(data.detail || 'Failed to create session', 'error');
                 }
@@ -205,7 +717,12 @@
             messageDiv.className = `system-message ${type}`;
             messageDiv.textContent = message;
             messagesContainer.appendChild(messageDiv);
-            setTimeout(() => messageDiv.remove(), 5000); // Remove after 5 seconds
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                messageDiv.style.transform = 'translateY(-10px)';
+                setTimeout(() => messageDiv.remove(), 300);
+            }, 4700); // Start fade out slightly before removal
         }
 
         async function sendMessage() {
@@ -215,6 +732,17 @@
             // Add user message to chat
             addMessage(message, 'user');
             messageInput.value = '';
+
+            // Show suggestions after each interaction
+            showSuggestions();
+
+            // Add a typing indicator
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'message bot-message';
+            typingIndicator.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+            typingIndicator.style.padding = '10px 15px';
+            messagesContainer.appendChild(typingIndicator);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
             try {
                 const response = await fetch('/chat/', {
@@ -228,6 +756,9 @@
                     })
                 });
 
+                // Remove typing indicator
+                messagesContainer.removeChild(typingIndicator);
+
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -240,8 +771,29 @@
                     showSystemMessage(data.detail || 'Error processing message', 'error');
                 }
             } catch (error) {
+                // Remove typing indicator in case of error
+                if (messagesContainer.contains(typingIndicator)) {
+                    messagesContainer.removeChild(typingIndicator);
+                }
                 showSystemMessage('Error: ' + error.message, 'error');
             }
+        }
+
+        function showSuggestions() {
+            // Check if there's already a suggestion container
+            let suggestionsContainer = document.getElementById('suggestion-container');
+            
+            if (!suggestionsContainer) {
+                // Create a new suggestion container
+                suggestionsContainer = document.createElement('div');
+                suggestionsContainer.id = 'suggestion-container';
+                suggestionsContainer.className = 'suggestion-container';
+                messagesContainer.appendChild(suggestionsContainer);
+            }
+            
+            // Update suggestions based on current language
+            updateSuggestions(document.getElementById('language').value);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
         function addMessage(text, sender) {
@@ -249,6 +801,12 @@
             messageDiv.className = `message ${sender}-message`;
             messageDiv.textContent = text;
             messagesContainer.appendChild(messageDiv);
+            
+            // Show suggestions after bot messages
+            if (sender === 'bot') {
+                showSuggestions();
+            }
+            
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
     </script>

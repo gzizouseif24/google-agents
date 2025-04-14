@@ -67,6 +67,7 @@ class ChatMessage(BaseModel):
 class SessionPreferences(BaseModel):
     temperature_unit: str = "Celsius"
     default_city: str = "Tunis"
+    language: str = "English"
 
 class SessionCreate(BaseModel):
     session_name: str
@@ -106,7 +107,8 @@ def create_default_session():
     """Create the default session with initial state"""
     initial_state = {
         "user_preference_temperature_unit": "Celsius",
-        "user_preference_city": "Tunis"
+        "user_preference_city": "Tunis",
+        "user_preference_language": "English"
     }
     
     session_service.create_session(
@@ -142,7 +144,8 @@ async def create_session(session_req: SessionCreate):
         # Create initial state from preferences
         initial_state = {
             "user_preference_temperature_unit": session_req.preferences.temperature_unit,
-            "user_preference_city": session_req.preferences.default_city
+            "user_preference_city": session_req.preferences.default_city,
+            "user_preference_language": session_req.preferences.language
         }
         
         # Create session
