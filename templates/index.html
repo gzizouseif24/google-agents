@@ -22,12 +22,29 @@
             padding: 10px;
             font-size: 24px;
         }
+        .session-panel {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .session-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .session-info {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
         .chat-container {
             background-color: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            height: 70vh;
+            height: 60vh;
             display: flex;
             flex-direction: column;
         }
@@ -57,7 +74,7 @@
             display: flex;
             gap: 10px;
         }
-        #message-input {
+        input[type="text"], select {
             flex-grow: 1;
             padding: 10px;
             border: 1px solid #ddd;
@@ -72,9 +89,31 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            white-space: nowrap;
         }
         button:hover {
             background-color: #0056b3;
+        }
+        .preferences-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .system-message {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
         }
     </style>
 </head>
@@ -82,6 +121,24 @@
     <div class="header">
         <h1>Weather Agent</h1>
     </div>
+
+    <div class="session-panel">
+        <div class="session-info">
+            Current Session: <span id="current-session">default</span>
+        </div>
+        <div class="session-form">
+            <input type="text" id="session-name" placeholder="New session name">
+            <button onclick="createNewSession()">Create New Session</button>
+        </div>
+        <div class="preferences-form">
+            <select id="temp-unit">
+                <option value="Celsius">Celsius</option>
+                <option value="Fahrenheit">Fahrenheit</option>
+            </select>
+            <input type="text" id="default-city" placeholder="Default city">
+        </div>
+    </div>
+
     <div class="chat-container">
         <div class="chat-messages" id="chat-messages">
             <div class="message bot-message">Hello! How can I help you today?</div>
@@ -95,11 +152,60 @@
     <script>
         const messagesContainer = document.getElementById('chat-messages');
         const messageInput = document.getElementById('message-input');
+        let currentSessionId = 's_00001'; // Default session ID
 
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 sendMessage();
             }
+        }
+
+        async function createNewSession() {
+            const sessionName = document.getElementById('session-name').value.trim();
+            if (!sessionName) {
+                showSystemMessage('Please enter a session name', 'error');
+                return;
+            }
+
+            const tempUnit = document.getElementById('temp-unit').value;
+            const defaultCity = document.getElementById('default-city').value.trim() || 'Tunis';
+
+            try {
+                const response = await fetch('/session/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_name: sessionName,
+                        preferences: {
+                            temperature_unit: tempUnit,
+                            default_city: defaultCity
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    currentSessionId = data.session_id;
+                    document.getElementById('current-session').textContent = sessionName;
+                    showSystemMessage('New session created successfully!', 'success');
+                    // Clear chat messages
+                    messagesContainer.innerHTML = '<div class="message bot-message">Hello! How can I help you today?</div>';
+                } else {
+                    showSystemMessage(data.detail || 'Failed to create session', 'error');
+                }
+            } catch (error) {
+                showSystemMessage('Error creating session: ' + error.message, 'error');
+            }
+        }
+
+        function showSystemMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `system-message ${type}`;
+            messageDiv.textContent = message;
+            messagesContainer.appendChild(messageDiv);
+            setTimeout(() => messageDiv.remove(), 5000); // Remove after 5 seconds
         }
 
         async function sendMessage() {
@@ -117,20 +223,24 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        message: message
+                        message: message,
+                        session_id: currentSessionId
                     })
                 });
 
                 const data = await response.json();
                 
-                // Add bot response to chat
-                if (data.response) {
-                    addMessage(data.response, 'bot');
+                if (response.ok) {
+                    if (data.response) {
+                        addMessage(data.response, 'bot');
+                    } else {
+                        addMessage('Sorry, I encountered an error.', 'bot');
+                    }
                 } else {
-                    addMessage('Sorry, I encountered an error.', 'bot');
+                    showSystemMessage(data.detail || 'Error processing message', 'error');
                 }
             } catch (error) {
-                addMessage('Sorry, I encountered an error: ' + error.message, 'bot');
+                showSystemMessage('Error: ' + error.message, 'error');
             }
         }
 

@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 from multi_tool_agent.agent import root_agent, Runner, InMemorySessionService
+from typing import Dict, Optional
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -59,29 +60,37 @@ runner = Runner(
     session_service=session_service
 )
 
-# Constants
-USER_ID = "u_00001"
-SESSION_ID = "s_00001"
-
 class ChatMessage(BaseModel):
     message: str
+    session_id: str = "s_00001"  # Default session ID
 
-# Create initial session with default state
-initial_state = {
-    "user_preference_temperature_unit": "Celsius",
-    "user_preference_city": "Tunis"
-}
+class SessionPreferences(BaseModel):
+    temperature_unit: str = "Celsius"
+    default_city: str = "Tunis"
+
+class SessionCreate(BaseModel):
+    session_name: str
+    preferences: SessionPreferences
+
+class SessionResponse(BaseModel):
+    session_id: str
+    session_name: str
+    message: str
+
+# Store session mappings (name -> id)
+session_mappings: Dict[str, str] = {"default": "s_00001"}
+
+def generate_session_id() -> str:
+    """Generate a unique session ID"""
+    import uuid
+    return f"s_{str(uuid.uuid4())[:8]}"
 
 @app.on_event("startup")
 async def startup_event():
     """Create the default session when the API starts"""
     try:
-        session_service.create_session(
-            app_name="multi_tool_agent",
-            user_id=USER_ID,
-            session_id=SESSION_ID,
-            state=initial_state
-        )
+        # Create default session
+        create_default_session()
         logger.info("Successfully created initial session")
         
         # Log environment configuration
@@ -92,6 +101,20 @@ async def startup_event():
         
     except Exception as e:
         logger.error(f"Failed to create initial session: {str(e)}")
+
+def create_default_session():
+    """Create the default session with initial state"""
+    initial_state = {
+        "user_preference_temperature_unit": "Celsius",
+        "user_preference_city": "Tunis"
+    }
+    
+    session_service.create_session(
+        app_name="multi_tool_agent",
+        user_id="u_00001",
+        session_id="s_00001",
+        state=initial_state
+    )
 
 @app.get("/")
 async def read_root():
@@ -105,8 +128,42 @@ async def health_check():
         "status": "healthy",
         "environment_configured": all(os.getenv(var) for var in required_env_vars),
         "google_ai_configured": bool(os.getenv('GOOGLE_API_KEY')),
-        "weather_api_configured": bool(os.getenv('OPENWEATHERMAP_API_KEY'))
+        "weather_api_configured": bool(os.getenv('OPENWEATHERMAP_API_KEY')),
+        "active_sessions": len(session_mappings)
     }
+
+@app.post("/session/", response_model=SessionResponse)
+async def create_session(session_req: SessionCreate):
+    """Create a new chat session with custom preferences"""
+    try:
+        # Generate new session ID
+        session_id = generate_session_id()
+        
+        # Create initial state from preferences
+        initial_state = {
+            "user_preference_temperature_unit": session_req.preferences.temperature_unit,
+            "user_preference_city": session_req.preferences.default_city
+        }
+        
+        # Create session
+        session_service.create_session(
+            app_name="multi_tool_agent",
+            user_id="u_00001",
+            session_id=session_id,
+            state=initial_state
+        )
+        
+        # Store session mapping
+        session_mappings[session_req.session_name] = session_id
+        
+        return SessionResponse(
+            session_id=session_id,
+            session_name=session_req.session_name,
+            message="Session created successfully"
+        )
+    except Exception as e:
+        logger.error(f"Failed to create session: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat/")
 async def chat(message: ChatMessage):
@@ -122,8 +179,8 @@ async def chat(message: ChatMessage):
         # Process message through agent
         final_response = None
         async for event in runner.run_async(
-            user_id=USER_ID,
-            session_id=SESSION_ID,
+            user_id="u_00001",
+            session_id=message.session_id,
             new_message=content
         ):
             if event.is_final_response():

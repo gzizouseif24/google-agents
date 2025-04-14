@@ -11,4 +11,4 @@ services:
       - GOOGLE_GENAI_USE_VERTEXAI=False
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - OPENWEATHERMAP_API_KEY=${OPENWEATHERMAP_API_KEY}
-      - MODEL_GEMINI_2_0_FLASH=gemini-pro 
+      - MODEL_GEMINI_2_0_FLASH=gemini-2.0-flash

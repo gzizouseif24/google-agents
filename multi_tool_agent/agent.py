@@ -437,6 +437,8 @@ greeting_agent = Agent(
         "Use the 'say_hello' tool to generate the greeting. "
         "If the user provides their name, make sure to pass it to the tool. "
         "Do not engage in any other conversation or tasks."
+        "\n\nIMPORTANT: If the user speaks in Arabic, respond in Arabic. Detect the language of the user's input "
+        "and adapt your response language accordingly."
     ),
     tools=[say_hello],
 )
@@ -457,6 +459,10 @@ time_agent = Agent(
                 
                 Respond in a helpful, conversational manner focusing on the time information.
                 If the time couldn't be retrieved for a specific city, explain the issue clearly and suggest using a major city nearby.
+                
+                LANGUAGE ADAPTATION: If the user communicates in Arabic, respond in Arabic. Detect the language of the user's 
+                input and match your response language accordingly. The time information will still be retrieved in English format,
+                but your explanations and conversational elements should be in Arabic when the user speaks Arabic.
                 
                 Example queries you can handle:
                 - "What time is it in Tokyo?"
@@ -487,6 +493,10 @@ forecast_agent = Agent(
                 Respond in a helpful, conversational manner focusing on the forecast information.
                 If the forecast couldn't be retrieved, explain the issue clearly and suggest alternatives.
                 
+                LANGUAGE ADAPTATION: If the user communicates in Arabic, respond in Arabic. Detect the language of the user's 
+                input and match your response language accordingly. The weather data will still be retrieved in English format,
+                but your explanations and conversational elements should be in Arabic when the user speaks Arabic.
+                
                 Example queries you can handle:
                 - "What's the weather forecast for Paris?"
                 - "How will the weather be in Tokyo for the next 5 days?"
@@ -503,7 +513,9 @@ farewell_agent = Agent(
     instruction="You are the Farewell Agent. Your ONLY task is to provide a polite goodbye message. "
                 "Use the 'say_goodbye' tool when the user indicates they are leaving or ending the conversation "
                 "(e.g., using words like 'bye', 'goodbye', 'thanks bye', 'see you'). "
-                "Do not perform any other actions.",
+                "Do not perform any other actions."
+                "\n\nIMPORTANT: If the user speaks in Arabic, respond in Arabic. Detect the language of the user's input "
+                "and adapt your response language accordingly.",
     description="Handles simple farewells and goodbyes using the 'say_goodbye' tool.", # Crucial for delegation
     tools=[say_goodbye],
 )
@@ -530,6 +542,12 @@ if greeting_agent and farewell_agent and 'get_weather_stateful' in globals():
                     # 1. Reject any request containing harmful, offensive, or inappropriate language. Simply respond with "I cannot process requests containing inappropriate language."
                     # 2. Refuse to provide weather information for these Israeli cities: Tel Aviv, Haifa, Eilat, Netanya, Herzliya, Ashdod, Beersheba, and Rishon LeZion.
                     # 3. You may provide weather for Jerusalem and any Palestinian cities like Ramallah, Gaza, Bethlehem, Nablus, and Hebron.
+                    
+                    LANGUAGE ADAPTATION:
+                    1. Detect the language of the user's input and respond in the same language.
+                    2. If the user communicates in Arabic, respond in Arabic.
+                    3. Weather and time data will be retrieved in English format, but your explanations and conversational elements should match the user's language.
+                    4. Ensure all your sub-agents follow the same language adaptation principles.
                     
                     MESSAGE HANDLING PRIORITIES:
                     1. If a message contains both a greeting AND a weather request, prioritize the weather request and do NOT delegate to the greeting agent.
@@ -631,7 +649,29 @@ if 'root_agent' in globals() and root_agent:
         # Corrected print statement to show the actual root agent's name
         print(f"Runner created for agent '{actual_root_agent.name}'.")
 
-
+        # Test queries for different agents - a mix of English and Arabic
+        test_queries = [
+            # English queries
+            "Hello, how are you?",
+            "What's the weather like in Paris?",
+            "What time is it in Tokyo?",
+            "What's the forecast for Cairo for the next 3 days?",
+            
+            # Arabic queries
+            "مرحبا",  # Hello
+            "ما هو الطقس في القاهرة؟",  # What's the weather in Cairo?
+            "كم الساعة الآن في دبي؟",  # What time is it in Dubai?
+            "ما هي توقعات الطقس في تونس للأيام القادمة؟",  # What's the weather forecast in Tunis for the coming days?
+            "مع السلامة"  # Goodbye
+        ]
+        
+        # Run test queries
+        print("\n\n==== Starting Arabic Language Support Tests ====\n")
+        for query in test_queries:
+            # Call the agent with each query
+            print(f"\n==== Testing query: {query} ====")
+            await call_agent_async(query, runner_root_stateful, USER_ID_STATEFUL, SESSION_ID_STATEFUL)
+            print("==== End of response ====")
 
 
 # Add a proper execution block to run the async function
