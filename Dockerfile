@@ -12,8 +12,11 @@ COPY . .
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Expose the port that ADK will use
-EXPOSE 8000
+# Create templates directory
+RUN mkdir -p templates
 
-# Command to run the application
-CMD ["adk", "web", "--port", "8000"] 
+# Expose the port that FastAPI will use
+EXPOSE 8001
+
+# Command to run the FastAPI application
+CMD ["python", "agent_server.py"] 

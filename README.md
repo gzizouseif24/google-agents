@@ -1,13 +1,16 @@
-# Weather and Time Agent
+# Weather Agent Chat Interface
 
-A Python-based agent that uses Google's Agent Development Kit (ADK) and Generative AI to answer questions about weather and time in different cities around the world.
+A Python-based chatbot that uses Google's Agent Development Kit (ADK) and Generative AI to answer questions about weather and time in different cities around the world. The application provides a modern, user-friendly web interface for interacting with the agent.
 
 ## Features
 
+- **Interactive Chat Interface**: Modern web-based chat interface for easy interaction
 - **Weather Information**: Get current weather conditions for cities worldwide using the OpenWeatherMap API
+- **Weather Forecasts**: Get weather forecasts for the next few days
 - **Time Lookup**: Check the current time in major cities across different time zones
 - **Google AI Integration**: Powered by Gemini 2.0 Flash generative AI model
 - **Built with ADK**: Uses Google's Agent Development Kit framework for flexible agent development
+- **State Management**: Maintains user preferences for temperature units and default city
 
 ## About Google Agent Development Kit (ADK)
 
@@ -32,34 +35,19 @@ The agent processes user queries about weather and time, identifies the city men
 
 ## Prerequisites
 
-- Python 3.6+
+- Docker and Docker Compose
 - OpenWeatherMap API key
 - Google AI Gemini API key
-- Google ADK: `pip install google-adk`
 
-## Installation
+## Quick Start with Docker
 
 1. Clone the repository:
-   ```
+   ```bash
    git clone <repository-url>
    cd google_agents
    ```
 
-2. Create and activate a virtual environment:
-   ```
-   python -m venv .venv
-   # On Windows
-   .venv\Scripts\activate
-   # On macOS/Linux
-   source .venv/bin/activate
-   ```
-
-3. Install the required dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-
-4. Set up your environment variables:
+2. Set up your environment variables:
    - Create a `.env` file in the `multi_tool_agent` directory
    - Add your API keys:
      ```
@@ -68,81 +56,87 @@ The agent processes user queries about weather and time, identifies the city men
      OPENWEATHERMAP_API_KEY="your-openweathermap-api-key"
      ```
 
+3. Build and run with Docker Compose:
+   ```bash
+   docker-compose up --build
+   ```
+
+4. Open your browser and navigate to:
+   ```
+   http://localhost:8001
+   ```
+
+## Manual Installation
+
+If you prefer to run without Docker:
+
+1. Create and activate a virtual environment:
+   ```bash
+   python -m venv .venv
+   # On Windows
+   .venv\Scripts\activate
+   # On macOS/Linux
+   source .venv/bin/activate
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Run the server:
+   ```bash
+   python agent_server.py
+   ```
+
 ## Usage
 
-The agent contains two main function tools integrated with Google ADK:
+The chat interface allows you to:
 
-1. `get_weather(city)`: Retrieves current weather information for a specified city
-   - Returns structured dictionary with status and weather report 
-   - Makes API calls to OpenWeatherMap to fetch real-time weather data
+- Ask about current weather: "What's the weather like in Paris?"
+- Get weather forecasts: "What's the forecast for London for the next 3 days?"
+- Check current time: "What time is it in Tokyo?"
+- Use default city: "What's the weather like?" (uses your preferred city)
+- Send greetings and get responses
 
-2. `get_current_time(city)`: Returns the current time in a specified city
-   - Returns structured dictionary with status and time information
-   - Uses Python's datetime and zoneinfo to calculate accurate local times
-
-### Running the Agent
-
-You can run the agent using one of these methods:
-
-1. **Using the ADK Web Interface**:
-   ```
-   cd ..  # Navigate to parent directory
-   adk web
-   ```
-   Then open http://localhost:8000 in your browser and select "multi_tool_agent"
-
-2. **Using the Terminal**:
-   ```
-   cd ..  # Navigate to parent directory
-   adk run multi_tool_agent
-   ```
-
-3. **As an API Server**:
-   ```
-   cd ..  # Navigate to parent directory
-   adk api_server multi_tool_agent
-   ```
-
-### ADK Agent Implementation
-
-This project uses the ADK's `Agent` class (an alias for `LlmAgent`) to create an agent with the following configuration:
-
-```python
-root_agent = Agent(
-    name="weather_time_agent",
-    model="gemini-2.0-flash-exp",
-    description="Agent to answer questions about the time and weather in a city.",
-    instruction="I can answer your questions about the time and weather in a city.",
-    tools=[get_weather, get_current_time],
-)
-```
-
-The configuration includes:
-- **name**: A unique identifier for the agent
-- **model**: The Gemini model used for natural language understanding
-- **description**: A concise summary of the agent's capabilities
-- **instruction**: Guidance for the LLM on how to respond to queries
-- **tools**: The Python functions that extend the agent's capabilities
+The agent will:
+- Maintain your preferences across the session
+- Provide formatted, easy-to-read responses
+- Handle multiple types of queries intelligently
+- Give accurate weather and time information
 
 ## Project Structure
 
 ```
 google_agents/
-├── multi_tool_agent/        # Main project directory
-│   ├── agent.py             # Core agent implementation
-│   ├── __init__.py          # Package initialization
-│   └── .env                 # Environment variables (not in version control)
-└── requirements.txt         # Project dependencies
+├── multi_tool_agent/        # Main agent implementation
+│   ├── agent.py            # Core agent implementation
+│   ├── __init__.py         # Package initialization
+│   └── .env                # Environment variables
+├── templates/              # Web interface
+│   └── index.html         # Chat interface
+├── agent_server.py        # FastAPI server
+├── requirements.txt       # Project dependencies
+├── Dockerfile            # Docker configuration
+├── docker-compose.yml    # Docker Compose configuration
+└── .dockerignore        # Docker build exclusions
 ```
 
-## Learn More About ADK
+## API Endpoints
 
-For more information about Google's Agent Development Kit:
-- [ADK Documentation](https://google.github.io/adk-docs)
-- [Getting Started](https://google.github.io/adk-docs/get-started/quickstart/)
-- [LLM Agents](https://google.github.io/adk-docs/agents/llm-agents/)
-- [Function Tools](https://google.github.io/adk-docs/tools/function-tools/)
-- [Sample Agents](https://google.github.io/adk-docs/get-started/sample-agents/)
+- `GET /`: Serves the chat interface
+- `POST /chat/`: Processes chat messages and returns agent responses
+
+## Environment Variables
+
+Required environment variables in `.env`:
+- `GOOGLE_API_KEY`: Your Google AI API key
+- `OPENWEATHERMAP_API_KEY`: Your OpenWeatherMap API key
+- `GOOGLE_GENAI_USE_VERTEXAI`: Set to "False" for direct API usage
+
+## Contributing
+
+[Add contribution guidelines]
 
 ## License
 
@@ -152,5 +146,5 @@ For more information about Google's Agent Development Kit:
 
 - OpenWeatherMap API for weather data
 - Google AI for the Gemini model
-- Google Agent Development Kit (ADK) for the agent framework 
+- Google Agent Development Kit (ADK) for the agent framework
 
